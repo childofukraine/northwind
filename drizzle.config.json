@@ -1,0 +1,5 @@
+{
+    "dialect": "mysql",
+    "out": "./migrations-folder",
+    "schema": "./src/db"
+}

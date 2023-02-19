@@ -1,0 +1,681 @@
+{
+  "version": "4",
+  "dialect": "pg",
+  "id": "fe43d943-b325-4476-9421-9c27302038e1",
+  "prevId": "00000000-0000-0000-0000-000000000000",
+  "tables": {
+    "categories": {
+      "name": "categories",
+      "schema": "",
+      "columns": {
+        "CategoryID": {
+          "name": "CategoryID",
+          "type": "integer",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "CategoryName": {
+          "name": "CategoryName",
+          "type": "varchar(45)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "Description": {
+          "name": "Description",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {}
+    },
+    "customers": {
+      "name": "customers",
+      "schema": "",
+      "columns": {
+        "CustomerID": {
+          "name": "CustomerID",
+          "type": "varchar(15)",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "CompanyName": {
+          "name": "CompanyName",
+          "type": "varchar(70)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "ContactName": {
+          "name": "ContactName",
+          "type": "varchar(60)",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "ContactTitle": {
+          "name": "ContactTitle",
+          "type": "varchar(60)",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "Address": {
+          "name": "Address",
+          "type": "varchar(100)",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "City": {
+          "name": "City",
+          "type": "varchar(100)",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "Region": {
+          "name": "Region",
+          "type": "varchar(50)",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "PostalCode": {
+          "name": "PostalCode",
+          "type": "varchar(15)",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "Country": {
+          "name": "Country",
+          "type": "varchar(45)",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "Phone": {
+          "name": "Phone",
+          "type": "varchar(45)",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "Fax": {
+          "name": "Fax",
+          "type": "varchar(45)",
+          "primaryKey": false,
+          "notNull": false
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {}
+    },
+    "employees": {
+      "name": "employees",
+      "schema": "",
+      "columns": {
+        "EmployeeID": {
+          "name": "EmployeeID",
+          "type": "integer",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "LastName": {
+          "name": "LastName",
+          "type": "varchar(45)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "FirstName": {
+          "name": "FirstName",
+          "type": "varchar(45)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "Title": {
+          "name": "Title",
+          "type": "varchar(100)",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "TitleOfCourtesy": {
+          "name": "TitleOfCourtesy",
+          "type": "varchar(20)",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "BirthDate": {
+          "name": "BirthDate",
+          "type": "date",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "HireDate": {
+          "name": "HireDate",
+          "type": "date",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "Address": {
+          "name": "Address",
+          "type": "varchar(150)",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "City": {
+          "name": "City",
+          "type": "varchar(20)",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "Region": {
+          "name": "Region",
+          "type": "varchar(45)",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "PostalCode": {
+          "name": "PostalCode",
+          "type": "varchar(20)",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "Country": {
+          "name": "Country",
+          "type": "varchar(45)",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "HomePhone": {
+          "name": "HomePhone",
+          "type": "varchar(45)",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "Extension": {
+          "name": "Extension",
+          "type": "varchar(45)",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "Notes": {
+          "name": "Notes",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "ReportsTo": {
+          "name": "ReportsTo",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {}
+    },
+    "order_details": {
+      "name": "order_details",
+      "schema": "",
+      "columns": {
+        "OrderID": {
+          "name": "OrderID",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "ProductID": {
+          "name": "ProductID",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "UnitPrice": {
+          "name": "UnitPrice",
+          "type": "numeric",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "Quantity": {
+          "name": "Quantity",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "Discount": {
+          "name": "Discount",
+          "type": "numeric",
+          "primaryKey": false,
+          "notNull": true
+        }
+      },
+      "indexes": {
+        "orderID_and_productID_index": {
+          "name": "orderID_and_productID_index",
+          "columns": [
+            "OrderID",
+            "ProductID"
+          ],
+          "isUnique": false
+        }
+      },
+      "foreignKeys": {
+        "order_details_OrderID_orders_OrderID_fk": {
+          "name": "order_details_OrderID_orders_OrderID_fk",
+          "tableFrom": "order_details",
+          "tableTo": "orders",
+          "columnsFrom": [
+            "OrderID"
+          ],
+          "columnsTo": [
+            "OrderID"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        },
+        "order_details_ProductID_products_ProductID_fk": {
+          "name": "order_details_ProductID_products_ProductID_fk",
+          "tableFrom": "order_details",
+          "tableTo": "products",
+          "columnsFrom": [
+            "ProductID"
+          ],
+          "columnsTo": [
+            "ProductID"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        }
+      }
+    },
+    "orders": {
+      "name": "orders",
+      "schema": "",
+      "columns": {
+        "OrderID": {
+          "name": "OrderID",
+          "type": "integer",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "CustomerID": {
+          "name": "CustomerID",
+          "type": "varchar(15)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "EmployeeID": {
+          "name": "EmployeeID",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "OrderDate": {
+          "name": "OrderDate",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "RequiredDate": {
+          "name": "RequiredDate",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "ShippedDate": {
+          "name": "ShippedDate",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "ShipVia": {
+          "name": "ShipVia",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "Freight": {
+          "name": "Freight",
+          "type": "numeric",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "ShipName": {
+          "name": "ShipName",
+          "type": "varchar(50)",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "ShipAddress": {
+          "name": "ShipAddress",
+          "type": "varchar(100)",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "ShipCity": {
+          "name": "ShipCity",
+          "type": "varchar(50)",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "ShipRegion": {
+          "name": "ShipRegion",
+          "type": "varchar(50)",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "ShipPostalCode": {
+          "name": "ShipPostalCode",
+          "type": "varchar(50)",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "ShipCountry": {
+          "name": "ShipCountry",
+          "type": "varchar(50)",
+          "primaryKey": false,
+          "notNull": false
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "orders_CustomerID_customers_CustomerID_fk": {
+          "name": "orders_CustomerID_customers_CustomerID_fk",
+          "tableFrom": "orders",
+          "tableTo": "customers",
+          "columnsFrom": [
+            "CustomerID"
+          ],
+          "columnsTo": [
+            "CustomerID"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        },
+        "orders_EmployeeID_employees_EmployeeID_fk": {
+          "name": "orders_EmployeeID_employees_EmployeeID_fk",
+          "tableFrom": "orders",
+          "tableTo": "employees",
+          "columnsFrom": [
+            "EmployeeID"
+          ],
+          "columnsTo": [
+            "EmployeeID"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        },
+        "orders_ShipVia_shippers_ShipperID_fk": {
+          "name": "orders_ShipVia_shippers_ShipperID_fk",
+          "tableFrom": "orders",
+          "tableTo": "shippers",
+          "columnsFrom": [
+            "ShipVia"
+          ],
+          "columnsTo": [
+            "ShipperID"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        }
+      }
+    },
+    "products": {
+      "name": "products",
+      "schema": "",
+      "columns": {
+        "ProductID": {
+          "name": "ProductID",
+          "type": "integer",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "ProductName": {
+          "name": "ProductName",
+          "type": "varchar(250)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "SupplierID": {
+          "name": "SupplierID",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "CategoryID": {
+          "name": "CategoryID",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "QuantityPerUnit": {
+          "name": "QuantityPerUnit",
+          "type": "varchar(60)",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "UnitPrice": {
+          "name": "UnitPrice",
+          "type": "numeric",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "UnitsInStock": {
+          "name": "UnitsInStock",
+          "type": "smallint",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "UnitsOnOrder": {
+          "name": "UnitsOnOrder",
+          "type": "smallint",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "ReorderLevel": {
+          "name": "ReorderLevel",
+          "type": "smallint",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "Discontinued": {
+          "name": "Discontinued",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": true
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "products_SupplierID_suppliers_SupplierID_fk": {
+          "name": "products_SupplierID_suppliers_SupplierID_fk",
+          "tableFrom": "products",
+          "tableTo": "suppliers",
+          "columnsFrom": [
+            "SupplierID"
+          ],
+          "columnsTo": [
+            "SupplierID"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        },
+        "products_CategoryID_categories_CategoryID_fk": {
+          "name": "products_CategoryID_categories_CategoryID_fk",
+          "tableFrom": "products",
+          "tableTo": "categories",
+          "columnsFrom": [
+            "CategoryID"
+          ],
+          "columnsTo": [
+            "CategoryID"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        }
+      }
+    },
+    "regions": {
+      "name": "regions",
+      "schema": "",
+      "columns": {
+        "RegionID": {
+          "name": "RegionID",
+          "type": "integer",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "RegionDescription": {
+          "name": "RegionDescription",
+          "type": "varchar(20)",
+          "primaryKey": false,
+          "notNull": true
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {}
+    },
+    "shippers": {
+      "name": "shippers",
+      "schema": "",
+      "columns": {
+        "ShipperID": {
+          "name": "ShipperID",
+          "type": "integer",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "CompanyName": {
+          "name": "CompanyName",
+          "type": "varchar(30)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "Phone": {
+          "name": "Phone",
+          "type": "varchar(30)",
+          "primaryKey": false,
+          "notNull": false
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {}
+    },
+    "suppliers": {
+      "name": "suppliers",
+      "schema": "",
+      "columns": {
+        "SupplierID": {
+          "name": "SupplierID",
+          "type": "integer",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "CompanyName": {
+          "name": "CompanyName",
+          "type": "varchar(45)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "ContactName": {
+          "name": "ContactName",
+          "type": "varchar(45)",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "ContactTitle": {
+          "name": "ContactTitle",
+          "type": "varchar(45)",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "Address": {
+          "name": "Address",
+          "type": "varchar(45)",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "City": {
+          "name": "City",
+          "type": "varchar(45)",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "Region": {
+          "name": "Region",
+          "type": "varchar(45)",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "PostalCode": {
+          "name": "PostalCode",
+          "type": "varchar(45)",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "Country": {
+          "name": "Country",
+          "type": "varchar(45)",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "Phone": {
+          "name": "Phone",
+          "type": "varchar(45)",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "Fax": {
+          "name": "Fax",
+          "type": "varchar(45)",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "HomePage": {
+          "name": "HomePage",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {}
+    },
+    "territories": {
+      "name": "territories",
+      "schema": "",
+      "columns": {
+        "TerritoryID": {
+          "name": "TerritoryID",
+          "type": "varchar(45)",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "TerritoryDescription": {
+          "name": "TerritoryDescription",
+          "type": "varchar(80)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "RegionID": {
+          "name": "RegionID",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "territories_RegionID_regions_RegionID_fk": {
+          "name": "territories_RegionID_regions_RegionID_fk",
+          "tableFrom": "territories",
+          "tableTo": "regions",
+          "columnsFrom": [
+            "RegionID"
+          ],
+          "columnsTo": [
+            "RegionID"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        }
+      }
+    }
+  },
+  "enums": {},
+  "schemas": {}
+}
