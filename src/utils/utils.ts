@@ -1,9 +1,5 @@
-import moment from "moment";
-
 export const getTS = () => {
-  return `${moment().format("L").replaceAll("/", ".")} ${moment()
-    .format()
-    .slice(11, 19)}`;
+  return new Date().toISOString().slice(0, 19).replace("T", " ");
 };
 
 export const executeQueryTime = (startTime: number, endTime: number) => {
