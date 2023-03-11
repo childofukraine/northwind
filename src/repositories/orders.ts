@@ -1,158 +1,176 @@
-import { badRequest } from "@hapi/boom";
 import { sql } from "drizzle-orm";
+import { eq } from "drizzle-orm/expressions";
 import db from "../db/database";
-import { ordersTable } from "../db/schema";
-import {
-  OrderInfo,
-  OrdersIndexedResponse,
-  OrdersResponse,
-  ProductsInOrder,
-} from "../types";
-import { executeQueryTime, getTS } from "../utils/utils";
+import { orderDetailsTable, ordersTable, shippersTable } from "../db/schema";
+import Info from "../entities/info";
+import { OrderByIDInfo, OrderInfo } from "../types";
+import { calcExecutionTime, getTS, workerId } from "../utils/utils";
 
 const { database } = db;
 
-export class Orders {
-  static getAllOrders = async (): Promise<OrdersResponse | undefined> => {
-    try {
-      const queryTS = getTS();
-      const startQueryTime = Date.now();
-      const orders = await database.select(ordersTable);
-      const endQueryTime = Date.now();
-      const queryExecutionTime = executeQueryTime(startQueryTime, endQueryTime);
+export class OrdersRepo {
+  static async ordersCount(): Promise<{ data: number; info: Info } | null> {
+    const ts = getTS();
+    const startExec = Date.now();
 
-      const response = {
-        data: orders,
-        queryInfo: {
-          queryString: database.select(ordersTable).toSQL().sql,
-          queryTS,
-          queryExecutionTime,
-        },
-      };
-      return response;
-    } catch (err) {
-      if (err instanceof Error) {
-        console.log(
-          "GetAllOrders error in database,error message: " + err.message
-        );
-      }
-    }
+    const count = await database
+      .select({
+        count: sql<number>`count(${ordersTable.orderID})`,
+      })
+      .from(ordersTable);
+
+    if (!count.length) return null;
+
+    return {
+      data: +count[0].count,
+      info: new Info(
+        database
+          .select({
+            count: sql<number>`count(${ordersTable.orderID})`,
+          })
+          .from(ordersTable)
+          .toSQL().sql,
+        ts,
+        calcExecutionTime(startExec, Date.now()),
+        workerId
+      ),
+    };
+  }
+
+  static getAllOrders = async (
+    page: number
+  ): Promise<{ data: OrderInfo[]; info: Info } | null> => {
+    const limit = +(process.env.LIMIT as string);
+    const offset = limit * (+page - 1);
+
+    const ts = getTS();
+    const startExec = Date.now();
+    const orders = await database
+      .select({
+        orderID: ordersTable.orderID,
+        totalProductPrice: sql<string>`sum(${orderDetailsTable.unitPrice} * ${orderDetailsTable.quantity})`,
+        totalProductsItems: sql<string>`sum(${orderDetailsTable.quantity})`,
+        totalProductsQuantity: sql<string>`count(${orderDetailsTable.orderID})`,
+        shippedDate: ordersTable.shippedDate,
+        shipName: ordersTable.shipName,
+        shipCity: ordersTable.shipCity,
+        shipCountry: ordersTable.shipCountry,
+      })
+      .from(ordersTable)
+      .leftJoin(
+        orderDetailsTable,
+        eq(ordersTable.orderID, orderDetailsTable.orderID)
+      )
+      .limit(limit)
+      .offset(offset)
+      .groupBy(ordersTable.orderID);
+
+    if (!orders.length) return null;
+
+    return {
+      data: orders,
+      info: new Info(
+        database
+          .select({
+            orderID: ordersTable.orderID,
+            totalProductPrice: sql<string>`sum(${orderDetailsTable.unitPrice} * ${orderDetailsTable.quantity})`,
+            totalProductsItems: sql<string>`sum(${orderDetailsTable.quantity})`,
+            totalProductsQuantity: sql<string>`count(${orderDetailsTable.orderID})`,
+            shippedDate: ordersTable.shippedDate,
+            shipName: ordersTable.shipName,
+            shipCity: ordersTable.shipCity,
+            shipCountry: ordersTable.shipCountry,
+          })
+          .from(ordersTable)
+          .leftJoin(
+            orderDetailsTable,
+            eq(ordersTable.orderID, orderDetailsTable.orderID)
+          )
+          .limit(limit)
+          .offset(offset)
+          .groupBy(ordersTable.orderID)
+          .toSQL().sql,
+        ts,
+        calcExecutionTime(startExec, Date.now()),
+        workerId
+      ),
+    };
   };
 
   static getIndexedOrders = async (
     orderId: number
-  ): Promise<OrdersIndexedResponse | string | undefined> => {
-    try {
-      const queryOrderInfoString = `
-          SELECT
-          SUM(OrdDet."UnitPrice" * OrdDet."Discount" * OrdDet."Quantity") AS Total_Products_Discount, 
-          SUM(OrdDet."UnitPrice" * OrdDet."Quantity") AS Total_Products_Price, 
-          SUM(OrdDet."Quantity") AS Total_Products_Items, 
-          COUNT(OrdDet."OrderID") AS Total_Products, 
-          Ord."CustomerID", 
-          Ord."OrderID", 
-          Ord."ShippedDate", 
-          Ord."ShipName", 
-          Ord."ShipCity", 
-          Shp."CompanyName", 
-          Ord."ShipCountry", 
-          Ord."Freight",
-          Ord."OrderDate", 
-          Ord."RequiredDate",
-          Ord."ShipRegion", 
-          Ord."ShipPostalCode"
-          FROM order_details OrdDet, Orders Ord, Shippers Shp
-          WHERE OrdDet."OrderID" = Ord."OrderID" AND Ord."ShipVia" = Shp."ShipperID" AND Ord."OrderID" = ${orderId}
-          group by Ord."OrderID", Shp."ShipperID"
-        `;
+  ): Promise<{ data: OrderByIDInfo; info: Info } | null> => {
+    const ts = getTS();
+    const startExec = Date.now();
 
-      const queryProductsInOrderString = `
-          SELECT
-          OrdDet."ProductID",
-          Prd."ProductName",
-          OrdDet."Quantity",
-          OrdDet."UnitPrice",
-          (OrdDet."UnitPrice" * OrdDet."Quantity") AS Total_Products_Price,
-          OrdDet."Discount"
-          FROM order_details OrdDet, Products Prd
-          WHERE OrdDet."ProductID" = Prd."ProductID" AND OrdDet."OrderID" = ${orderId}
-        `;
+    const order = await database
+      .select({
+        orderID: ordersTable.orderID,
+        totalProductDiscount: sql<string>`sum(${orderDetailsTable.unitPrice} * ${orderDetailsTable.discount} * ${orderDetailsTable.quantity})`,
+        totalProductPrice: sql<string>`sum(${orderDetailsTable.unitPrice} * ${orderDetailsTable.quantity})`,
+        totalProductsItems: sql<string>`sum(${orderDetailsTable.quantity})`,
+        totalProductsQuantity: sql<string>`count(${orderDetailsTable.orderID})`,
+        customerID: ordersTable.customerID,
+        shippedDate: ordersTable.shippedDate,
+        shipName: ordersTable.shipName,
+        shipCity: ordersTable.shipCity,
+        shipCountry: ordersTable.shipCountry,
+        companyName: shippersTable.companyName,
+        freight: ordersTable.freight,
+        orderDate: ordersTable.orderDate,
+        requiredDate: ordersTable.requiredDate,
+        shipRegion: ordersTable.shipRegion,
+        shipPostalCode: ordersTable.shipPostalCode,
+      })
+      .from(ordersTable)
+      .leftJoin(
+        orderDetailsTable,
+        eq(ordersTable.orderID, orderDetailsTable.orderID)
+      )
+      .leftJoin(shippersTable, eq(shippersTable.shipperID, ordersTable.shipVia))
+      .where(eq(orderDetailsTable.orderID, orderId))
+      .groupBy(ordersTable.orderID, shippersTable.shipperID);
 
-      const queryTS = getTS();
-      const startQueryOrderInfoTime = Date.now();
-      const order = await database.execute<OrderInfo>(sql`
-          SELECT
-          SUM(OrdDet."UnitPrice" * OrdDet."Discount" * OrdDet."Quantity") AS Total_Products_Discount, 
-          SUM(OrdDet."UnitPrice" * OrdDet."Quantity") AS Total_Products_Price, 
-          SUM(OrdDet."Quantity") AS Total_Products_Items, 
-          COUNT(OrdDet."OrderID") AS Total_Products, 
-          Ord."CustomerID", 
-          Ord."OrderID", 
-          Ord."ShippedDate", 
-          Ord."ShipName", 
-          Ord."ShipCity", 
-          Shp."CompanyName", 
-          Ord."ShipCountry", 
-          Ord."Freight",
-          Ord."OrderDate", 
-          Ord."RequiredDate",
-          Ord."ShipRegion", 
-          Ord."ShipPostalCode"
-          FROM order_details OrdDet, Orders Ord, Shippers Shp
-          WHERE OrdDet."OrderID" = Ord."OrderID" AND Ord."ShipVia" = Shp."ShipperID" AND Ord."OrderID" = ${orderId}
-          group by Ord."OrderID", Shp."ShipperID"
-          `);
-      const endQueryOrderInfoTime = Date.now();
-      const queryOrderInfoTimeExecutionTime = executeQueryTime(
-        startQueryOrderInfoTime,
-        endQueryOrderInfoTime
-      );
+    if (!order.length) return null;
 
-      const startQueryProductsInOrderTime = Date.now();
-      const products = await database.execute<ProductsInOrder>(sql`SELECT
-          OrdDet."ProductID",
-          Prd."ProductName",
-          OrdDet."Quantity",
-          OrdDet."UnitPrice",
-          (OrdDet."UnitPrice" * OrdDet."Quantity") AS Total_Products_Price,
-          OrdDet."Discount"
-          FROM order_details OrdDet, Products Prd
-          WHERE OrdDet."ProductID" = Prd."ProductID" AND OrdDet."OrderID" = ${orderId}`);
-
-      const endProductsInOrderTime = Date.now();
-
-      const queryProductsInOrderTimeExecutionTime = executeQueryTime(
-        startQueryProductsInOrderTime,
-        endProductsInOrderTime
-      );
-
-      if (!order.rows.length)
-        return badRequest("No such order").output.payload.message;
-      const response = {
-        data: {
-          orderInfo: order.rows,
-          productsInfo: products.rows,
-        },
-        queryInfo: {
-          orderInfo: {
-            queryString: queryOrderInfoString,
-            queryTS,
-            queryExecutionTime: queryOrderInfoTimeExecutionTime,
-          },
-          productsInOrder: {
-            queryString: queryProductsInOrderString,
-            queryTS,
-            queryExecutionTime: queryProductsInOrderTimeExecutionTime,
-          },
-        },
-      };
-      return response;
-    } catch (err) {
-      if (err instanceof Error) {
-        console.log(
-          "GetIndexedOrders error in database,error message: " + err.message
-        );
-      }
-    }
+    return {
+      data: order[0],
+      info: new Info(
+        database
+          .select({
+            orderID: ordersTable.orderID,
+            totalProductDiscount: sql<string>`sum(${orderDetailsTable.unitPrice} * ${orderDetailsTable.discount} * ${orderDetailsTable.quantity})`,
+            totalProductPrice: sql<string>`sum(${orderDetailsTable.unitPrice} * ${orderDetailsTable.quantity})`,
+            totalProductsItems: sql<string>`sum(${orderDetailsTable.quantity})`,
+            totalProductsQuantity: sql<string>`count(${orderDetailsTable.orderID})`,
+            customerID: ordersTable.customerID,
+            shippedDate: ordersTable.shippedDate,
+            shipName: ordersTable.shipName,
+            shipCity: ordersTable.shipCity,
+            shipCountry: ordersTable.shipCountry,
+            companyName: shippersTable.companyName,
+            freight: ordersTable.freight,
+            orderDate: ordersTable.orderDate,
+            requiredDate: ordersTable.requiredDate,
+            shipRegion: ordersTable.shipRegion,
+            shipPostalCode: ordersTable.shipPostalCode,
+          })
+          .from(ordersTable)
+          .leftJoin(
+            orderDetailsTable,
+            eq(ordersTable.orderID, orderDetailsTable.orderID)
+          )
+          .leftJoin(
+            shippersTable,
+            eq(shippersTable.shipperID, ordersTable.shipVia)
+          )
+          .where(eq(orderDetailsTable.orderID, orderId))
+          .groupBy(ordersTable.orderID, shippersTable.shipperID)
+          .toSQL().sql,
+        ts,
+        calcExecutionTime(startExec, Date.now()),
+        workerId
+      ),
+    };
   };
 }

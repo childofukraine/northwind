@@ -4,67 +4,77 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 };
 var _a;
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.Suppliers = void 0;
-const boom_1 = require("@hapi/boom");
+exports.SuppliersRepo = void 0;
+const drizzle_orm_1 = require("drizzle-orm");
 const expressions_1 = require("drizzle-orm/expressions");
+const dotenv_1 = __importDefault(require("dotenv"));
 const database_1 = __importDefault(require("../db/database"));
 const schema_1 = require("../db/schema");
 const utils_1 = require("../utils/utils");
+const info_1 = __importDefault(require("../entities/info"));
+dotenv_1.default.config();
 const { database } = database_1.default;
-class Suppliers {
+class SuppliersRepo {
+    static async suppliersCount() {
+        const ts = (0, utils_1.getTS)();
+        const startExec = Date.now();
+        const count = await database
+            .select({
+            count: (0, drizzle_orm_1.sql) `count(${schema_1.suppliersTable.supplierID})`,
+        })
+            .from(schema_1.suppliersTable);
+        if (!count.length)
+            return null;
+        return {
+            data: +count[0].count,
+            info: new info_1.default(database
+                .select({
+                count: (0, drizzle_orm_1.sql) `count(${schema_1.suppliersTable.supplierID})`,
+            })
+                .from(schema_1.suppliersTable)
+                .toSQL().sql, ts, (0, utils_1.calcExecutionTime)(startExec, Date.now()), utils_1.workerId),
+        };
+    }
 }
-exports.Suppliers = Suppliers;
-_a = Suppliers;
-Suppliers.getAllSuppliers = async () => {
-    try {
-        const queryTS = (0, utils_1.getTS)();
-        const startQueryTime = Date.now();
-        const suppliers = await database.select(schema_1.suppliersTable);
-        const endQueryTime = Date.now();
-        const queryExecutionTime = (0, utils_1.executeQueryTime)(startQueryTime, endQueryTime);
-        const response = {
-            data: suppliers,
-            queryInfo: {
-                queryString: database.select(schema_1.suppliersTable).toSQL().sql,
-                queryTS,
-                queryExecutionTime,
-            },
-        };
-        return response;
-    }
-    catch (err) {
-        if (err instanceof Error) {
-            console.log("GetAllSuppliers error in database,error message: " + err.message);
-        }
-    }
+exports.SuppliersRepo = SuppliersRepo;
+_a = SuppliersRepo;
+SuppliersRepo.getAllSuppliers = async (page) => {
+    const limit = +process.env.LIMIT;
+    const offset = limit * (+page - 1);
+    const ts = (0, utils_1.getTS)();
+    const startExec = Date.now();
+    const suppliers = await database
+        .select()
+        .from(schema_1.suppliersTable)
+        .limit(limit)
+        .offset(offset);
+    if (!suppliers.length)
+        return null;
+    return {
+        data: suppliers,
+        info: new info_1.default(database
+            .select()
+            .from(schema_1.suppliersTable)
+            .limit(limit)
+            .offset(offset)
+            .toSQL().sql, ts, (0, utils_1.calcExecutionTime)(startExec, Date.now()), utils_1.workerId),
+    };
 };
-Suppliers.getIndexedSuppliers = async (supplierId) => {
-    try {
-        const queryTS = (0, utils_1.getTS)();
-        const startQueryTime = Date.now();
-        const supplier = await database
-            .select(schema_1.suppliersTable)
-            .where((0, expressions_1.eq)(schema_1.suppliersTable.supplierID, supplierId));
-        const endQueryTime = Date.now();
-        const queryExecutionTime = (0, utils_1.executeQueryTime)(startQueryTime, endQueryTime);
-        if (!supplier.length)
-            return (0, boom_1.badRequest)("No such supplier").output.payload.message;
-        const response = {
-            data: supplier,
-            queryInfo: {
-                queryString: database
-                    .select(schema_1.suppliersTable)
-                    .where((0, expressions_1.eq)(schema_1.suppliersTable.supplierID, supplierId))
-                    .toSQL().sql,
-                queryTS,
-                queryExecutionTime,
-            },
-        };
-        return response;
-    }
-    catch (err) {
-        if (err instanceof Error) {
-            console.log("GetIndexedSuppliers error in database,error message: " + err.message);
-        }
-    }
+SuppliersRepo.getIndexedSuppliers = async (supplierId) => {
+    const ts = (0, utils_1.getTS)();
+    const startExec = Date.now();
+    const supplier = await database
+        .select()
+        .from(schema_1.suppliersTable)
+        .where((0, expressions_1.eq)(schema_1.suppliersTable.supplierID, supplierId));
+    if (!supplier.length)
+        return null;
+    return {
+        data: supplier[0],
+        info: new info_1.default(database
+            .select()
+            .from(schema_1.suppliersTable)
+            .where((0, expressions_1.eq)(schema_1.suppliersTable.supplierID, supplierId))
+            .toSQL().sql, ts, (0, utils_1.calcExecutionTime)(startExec, Date.now()), utils_1.workerId),
+    };
 };

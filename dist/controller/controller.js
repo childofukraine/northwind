@@ -1,84 +1,174 @@
 "use strict";
-var __importDefault = (this && this.__importDefault) || function (mod) {
-    return (mod && mod.__esModule) ? mod : { "default": mod };
-};
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.Controller = void 0;
-const axios_1 = __importDefault(require("axios"));
-const suppliers_1 = require("../repositories/suppliers");
-const products_1 = require("../repositories/products");
+const boom_1 = require("@hapi/boom");
 require("dotenv/config");
-const orders_1 = require("../repositories/orders");
-const employees_1 = require("../repositories/employees");
 const customers_1 = require("../repositories/customers");
+const employees_1 = require("../repositories/employees");
+const orders_1 = require("../repositories/orders");
+const products_1 = require("../repositories/products");
+const suppliers_1 = require("../repositories/suppliers");
 const search_1 = require("../repositories/search");
 class Controller {
-    static async dash(_req, res) {
-        let { data: rawIpData } = await axios_1.default.get(`${process.env.BASE_URL_IPREGISTRY}${process.env.API_KEY}`);
-        const { latitude, longitude } = rawIpData.location;
-        const { code } = rawIpData.location.country;
-        let { data: rawAirportData } = await axios_1.default.get(`${process.env.BASE_URL_AIR}${latitude}&lng=${longitude}&distance=100&api_key=${process.env.API_KEY_AIR}`);
-        const airportsArray = rawAirportData.response.airports;
-        const nearestAirport = airportsArray.reduce((prev, curr) => prev.distance < curr.distance ? prev : curr);
-        res.status(200).send({
-            Country: code,
-            Colo: nearestAirport.iata_code,
-        });
+    static async suppliers(req, res, next) {
+        const { page } = req.query;
+        try {
+            const count = await suppliers_1.SuppliersRepo.suppliersCount();
+            if (!count)
+                throw (0, boom_1.notFound)();
+            const suppliers = await suppliers_1.SuppliersRepo.getAllSuppliers(+page);
+            if (!suppliers)
+                throw (0, boom_1.notFound)();
+            res.json({ suppliers, count });
+        }
+        catch (err) {
+            next(err);
+        }
     }
-    static async suppliers(_req, res) {
-        const response = await suppliers_1.Suppliers.getAllSuppliers();
-        res.status(200).send({ response });
-    }
-    static async suppliersIndexed(req, res) {
+    static async suppliersIndexed(req, res, next) {
         const { supplierId } = req.params;
-        const response = await suppliers_1.Suppliers.getIndexedSuppliers(supplierId);
-        res.status(200).send({ response });
+        try {
+            const supplier = await suppliers_1.SuppliersRepo.getIndexedSuppliers(+supplierId);
+            if (!supplier)
+                throw (0, boom_1.notFound)();
+            res.json({ supplier });
+        }
+        catch (err) {
+            next(err);
+        }
     }
-    static async products(_req, res) {
-        const response = await products_1.Products.getAllProducts();
-        res.status(200).send({ response });
+    static async products(req, res, next) {
+        const { page } = req.query;
+        try {
+            const count = await products_1.ProductsRepo.productsCount();
+            if (!count)
+                throw (0, boom_1.notFound)();
+            const products = await products_1.ProductsRepo.getAllProducts(+page);
+            if (!products)
+                throw (0, boom_1.notFound)();
+            res.json({ products, count });
+        }
+        catch (err) {
+            next(err);
+        }
     }
-    static async productsIndexed(req, res) {
+    static async productsIndexed(req, res, next) {
         const { productId } = req.params;
-        const response = await products_1.Products.getIndexedProducts(productId);
-        res.status(200).send({ response });
+        try {
+            const product = await products_1.ProductsRepo.getIndexedProducts(+productId);
+            if (!product)
+                throw (0, boom_1.notFound)();
+            res.json({ product });
+        }
+        catch (err) {
+            next(err);
+        }
     }
-    static async orders(_req, res) {
-        const response = await orders_1.Orders.getAllOrders();
-        res.status(200).send({ response });
+    static async orders(req, res, next) {
+        const { page } = req.query;
+        try {
+            const count = await orders_1.OrdersRepo.ordersCount();
+            if (!count)
+                throw (0, boom_1.notFound)();
+            const orders = await orders_1.OrdersRepo.getAllOrders(+page);
+            if (!orders)
+                throw (0, boom_1.notFound)();
+            res.json({ count, orders });
+        }
+        catch (err) {
+            next(err);
+        }
     }
-    static async ordersIndexed(req, res) {
+    static async ordersIndexed(req, res, next) {
         const { orderId } = req.params;
-        const response = await orders_1.Orders.getIndexedOrders(orderId);
-        res.status(200).send({ response });
+        try {
+            const order = await orders_1.OrdersRepo.getIndexedOrders(+orderId);
+            if (!order)
+                throw (0, boom_1.notFound)();
+            const productsInOrder = await products_1.ProductsRepo.getProductsInOrderByOrderID(+orderId);
+            res.json({ order, productsInOrder });
+        }
+        catch (err) {
+            next(err);
+        }
     }
-    static async employees(_req, res) {
-        const response = await employees_1.Employees.getAllEmployees();
-        res.status(200).send({ response });
+    static async employees(req, res, next) {
+        const { page } = req.query;
+        try {
+            const count = await employees_1.EmployeesRepo.employeesCount();
+            if (!count)
+                throw (0, boom_1.notFound)();
+            const employees = await employees_1.EmployeesRepo.getAllEmployees(page);
+            if (!employees)
+                throw (0, boom_1.notFound)();
+            res.json({ count, employees });
+        }
+        catch (err) {
+            next(err);
+        }
     }
-    static async employeesIndexed(req, res) {
+    static async employeesIndexed(req, res, next) {
         const { employeeId } = req.params;
-        const response = await employees_1.Employees.getIndexedEmployees(employeeId);
-        res.status(200).send({ response });
+        try {
+            const employee = await employees_1.EmployeesRepo.getIndexedEmployees(+employeeId);
+            if (!employee)
+                throw (0, boom_1.notFound)();
+            res.json({ employee });
+        }
+        catch (err) {
+            next(err);
+        }
     }
-    static async customers(_req, res) {
-        const response = await customers_1.Customers.getAllCustomers();
-        res.status(200).send({ response });
+    static async customers(req, res, next) {
+        const { page } = req.query;
+        try {
+            const count = await customers_1.CustomersRepo.customersCount();
+            if (!count)
+                throw (0, boom_1.notFound)();
+            const customers = await customers_1.CustomersRepo.getAllCustomers(+page);
+            if (!customers)
+                throw (0, boom_1.notFound)();
+            res.json({ count, customers });
+        }
+        catch (err) {
+            next(err);
+        }
     }
-    static async customersIndexed(req, res) {
+    static async customersIndexed(req, res, next) {
         const { customerId } = req.params;
-        const response = await customers_1.Customers.getIndexedCustomers(customerId);
-        res.status(200).send({ response });
+        try {
+            const customer = await customers_1.CustomersRepo.getIndexedCustomers(customerId);
+            if (!customer)
+                throw (0, boom_1.notFound)();
+            res.json({ customer });
+        }
+        catch (err) {
+            next(err);
+        }
     }
-    static async searchProducts(req, res) {
+    static async searchProducts(req, res, next) {
         const { keyword } = req.params;
-        const response = await search_1.Search.searchProducts(keyword);
-        res.status(200).send({ response });
+        try {
+            const products = await search_1.SearchRepo.searchProducts(keyword);
+            if (!products)
+                throw (0, boom_1.notFound)();
+            return res.json(products);
+        }
+        catch (err) {
+            next(err);
+        }
     }
-    static async searchCustomers(req, res) {
+    static async searchCustomers(req, res, next) {
         const { keyword } = req.params;
-        const response = await search_1.Search.searchCustomers(keyword);
-        res.status(200).send({ response });
+        try {
+            const customers = await search_1.SearchRepo.searchCustomers(keyword);
+            if (!customers)
+                throw (0, boom_1.notFound)();
+            return res.json(customers);
+        }
+        catch (err) {
+            next(err);
+        }
     }
 }
 exports.Controller = Controller;

@@ -7,11 +7,13 @@ const express_1 = __importDefault(require("express"));
 const cors_1 = __importDefault(require("cors"));
 const dotenv_1 = __importDefault(require("dotenv"));
 const router_1 = __importDefault(require("./router/router"));
+const error_handler_1 = require("./utils/error_handler");
 dotenv_1.default.config();
 const app = (0, express_1.default)();
 const PORT = process.env.PORT || 5000;
 app.use("/", router_1.default);
 app.use((0, cors_1.default)());
+app.use(error_handler_1.errorHandler);
 app.listen(PORT, () => {
     console.log(`[server]: Server is running at http://localhost:${PORT}`);
 });

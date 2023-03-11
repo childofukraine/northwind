@@ -1,70 +1,97 @@
-import { badRequest } from "@hapi/boom";
+import { sql } from "drizzle-orm";
 import { eq } from "drizzle-orm/expressions";
 import db from "../db/database";
-import { customersTable } from "../db/schema";
-import { CustomersResponse } from "../types";
-import { executeQueryTime, getTS } from "../utils/utils";
+import { Customers, customersTable } from "../db/schema";
+import Info from "../entities/info";
+import { calcExecutionTime, getTS, workerId } from "../utils/utils";
 
 const { database } = db;
 
-export class Customers {
-  static getAllCustomers = async (): Promise<CustomersResponse | undefined> => {
-    try {
-      const queryTS = getTS();
-      const startQueryTime = Date.now();
-      const customers = await database.select(customersTable);
-      const endQueryTime = Date.now();
-      const queryExecutionTime = executeQueryTime(startQueryTime, endQueryTime);
+export class CustomersRepo {
+  static async customersCount(): Promise<{ data: number; info: Info } | null> {
+    const ts = getTS();
+    const startExec = Date.now();
 
-      const response = {
-        data: customers,
-        queryInfo: {
-          queryString: database.select(customersTable).toSQL().sql,
-          queryTS,
-          queryExecutionTime,
-        },
-      };
-      return response;
-    } catch (err) {
-      if (err instanceof Error) {
-        console.log(
-          "GetAllCustomers error in database,error message: " + err.message
-        );
-      }
-    }
+    const count = await database
+      .select({
+        count: sql<number>`count(${customersTable.customerID})`,
+      })
+      .from(customersTable);
+
+    if (!count.length) return null;
+
+    return {
+      data: +count[0].count,
+      info: new Info(
+        database
+          .select({
+            count: sql<number>`count(${customersTable.customerID})`,
+          })
+          .from(customersTable)
+          .toSQL().sql,
+        ts,
+        calcExecutionTime(startExec, Date.now()),
+        workerId
+      ),
+    };
+  }
+
+  static getAllCustomers = async (
+    page: number
+  ): Promise<{ data: Customers[]; info: Info } | null> => {
+    const limit = +(process.env.LIMIT as string);
+    const offset = limit * (+page - 1);
+
+    const ts = getTS();
+    const startExec = Date.now();
+    const customers = await database
+      .select()
+      .from(customersTable)
+      .limit(limit)
+      .offset(offset);
+
+    if (!customers.length) return null;
+
+    return {
+      data: customers,
+      info: new Info(
+        database
+          .select()
+          .from(customersTable)
+          .limit(limit)
+          .offset(offset)
+          .toSQL().sql,
+        ts,
+        calcExecutionTime(startExec, Date.now()),
+        workerId
+      ),
+    };
   };
-
   static getIndexedCustomers = async (
     customerId: string
-  ): Promise<CustomersResponse | undefined | string> => {
-    try {
-      const queryTS = getTS();
-      const startQueryTime = Date.now();
-      const customer = await database
-        .select(customersTable)
-        .where(eq(customersTable.customerID, customerId));
-      const endQueryTime = Date.now();
-      const queryExecutionTime = executeQueryTime(startQueryTime, endQueryTime);
-      if (!customer.length)
-        return badRequest("No such customer").output.payload.message;
-      const response = {
-        data: customer,
-        queryInfo: {
-          queryString: database
-            .select(customersTable)
-            .where(eq(customersTable.customerID, customerId))
-            .toSQL().sql,
-          queryTS,
-          queryExecutionTime,
-        },
-      };
-      return response;
-    } catch (err) {
-      if (err instanceof Error) {
-        console.log(
-          "GetIndexedCustomers error in database,error message: " + err.message
-        );
-      }
-    }
+  ): Promise<{ data: Customers; info: Info } | null> => {
+    const ts = getTS();
+    const startExec = Date.now();
+
+    const customer = await database
+      .select()
+      .from(customersTable)
+      .where(eq(customersTable.customerID, customerId));
+
+    if (!customer.length) return null;
+
+    return {
+      data: customer[0],
+      info: new Info(
+        database
+          .select()
+          .from(customersTable)
+          .where(eq(customersTable.customerID, customerId))
+          .toSQL().sql,
+        ts,
+        calcExecutionTime(startExec, Date.now()),
+        workerId
+      ),
+    };
   };
 }

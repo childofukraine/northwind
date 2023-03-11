@@ -1,7 +1,10 @@
-export const getTS = () => {
-  return new Date().toISOString().slice(0, 19).replace("T", " ");
+import { v4 as uuid } from "uuid";
+
+export const workerId = `primary-${uuid()}.render.db`;
+
+export const getTS = (): string => {
+  return new Date().toISOString();
 };
 
-export const executeQueryTime = (startTime: number, endTime: number) => {
-  return `${endTime - startTime}ms`;
-};
+export const calcExecutionTime = (start: number, end: number): number =>
+  end - start;

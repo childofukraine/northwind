@@ -1,97 +1,90 @@
-import { badRequest } from "@hapi/boom";
 import { ilike, or } from "drizzle-orm/expressions";
 import db from "../db/database";
-import { customersTable, productsTable } from "../db/schema";
-import { CustomersResponse, ProductsResponse } from "../types";
-import { executeQueryTime, getTS } from "../utils/utils";
+import {
+  Customers,
+  customersTable,
+  Products,
+  productsTable,
+} from "../db/schema";
+import Info from "../entities/info";
+import { calcExecutionTime, getTS, workerId } from "../utils/utils";
 
 const { database } = db;
 
-export class Search {
+export class SearchRepo {
   static searchProducts = async (
     keyword: string
-  ): Promise<ProductsResponse | string | undefined> => {
-    try {
-      const queryTS = getTS();
-      const startQueryTime = Date.now();
-      const product = await database
-        .select(productsTable)
-        .where(ilike(productsTable.productName, `%${keyword}%`));
+  ): Promise<{
+    data: Products[];
+    info: Info;
+  } | null> => {
+    const ts = getTS();
+    const startExec = Date.now();
 
-      const endQueryTime = Date.now();
+    const products = await database
+      .select()
+      .from(productsTable)
+      .where(ilike(productsTable.productName, `%${keyword}%`));
 
-      const queryExecutionTime = executeQueryTime(startQueryTime, endQueryTime);
-      if (!product.length)
-        return badRequest("Product not found").output.payload.message;
-      const response = {
-        data: product,
-        queryInfo: {
-          queryString: database
-            .select(productsTable)
-            .where(ilike(productsTable.productName, `%${keyword}%`))
-            .toSQL().sql,
-          queryTS,
-          queryExecutionTime,
-        },
-      };
-      return response;
-    } catch (err) {
-      if (err instanceof Error) {
-        console.log(
-          "SearchProducts error in database,error message: " + err.message
-        );
-      }
-    }
+    if (!products.length) return null;
+
+    return {
+      data: products,
+      info: new Info(
+        database
+          .select()
+          .from(productsTable)
+          .where(ilike(productsTable.productName, `%${keyword}%`))
+          .toSQL().sql,
+        ts,
+        calcExecutionTime(startExec, Date.now()),
+        workerId
+      ),
+    };
   };
 
   static searchCustomers = async (
     keyword: string
-  ): Promise<CustomersResponse | string | undefined> => {
-    try {
-      const queryTS = getTS();
+  ): Promise<{
+    data: Customers[];
+    info: Info;
+  } | null> => {
+    const ts = getTS();
+    const startExec = Date.now();
 
-      const startQueryTime = Date.now();
-      const customers = await database
-        .select(customersTable)
-        .where(
-          or(
-            ilike(customersTable.companyName, `%${keyword}%`),
-            ilike(customersTable.contactName, `%${keyword}%`),
-            ilike(customersTable.contactTitle, `%${keyword}%`),
-            ilike(customersTable.address, `%${keyword}%`)
-          )
-        );
+    const customers = await database
+      .select()
+      .from(customersTable)
+      .where(
+        or(
+          ilike(customersTable.companyName, `%${keyword}%`),
+          ilike(customersTable.contactName, `%${keyword}%`),
+          ilike(customersTable.contactTitle, `%${keyword}%`),
+          ilike(customersTable.address, `%${keyword}%`)
+        )
+      );
 
-      const endQueryTime = Date.now();
+    if (!customers.length) return null;
 
-      const queryExecutionTime = executeQueryTime(startQueryTime, endQueryTime);
-      if (!customers.length)
-        return badRequest("Customer not found").output.payload.message;
-      const response = {
-        data: customers,
-        queryInfo: {
-          queryString: database
-            .select(customersTable)
-            .where(
-              or(
-                ilike(customersTable.companyName, `%${keyword}%`),
-                ilike(customersTable.contactName, `%${keyword}%`),
-                ilike(customersTable.contactTitle, `%${keyword}%`),
-                ilike(customersTable.address, `%${keyword}%`)
-              )
+    return {
+      data: customers,
+      info: new Info(
+        database
+          .select()
+          .from(customersTable)
+          .where(
+            or(
+              ilike(customersTable.companyName, `%${keyword}%`),
+              ilike(customersTable.contactName, `%${keyword}%`),
+              ilike(customersTable.contactTitle, `%${keyword}%`),
+              ilike(customersTable.address, `%${keyword}%`)
             )
-            .toSQL().sql,
-          queryTS,
-          queryExecutionTime,
-        },
-      };
-      return response;
-    } catch (err) {
-      if (err instanceof Error) {
-        console.log(
-          "SearchCustomers error in database,error message: " + err.message
-        );
-      }
-    }
+          )
+          .toSQL().sql,
+        ts,
+        calcExecutionTime(startExec, Date.now()),
+        workerId
+      ),
+    };
   };
 }

@@ -4,138 +4,137 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 };
 var _a;
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.Orders = void 0;
-const boom_1 = require("@hapi/boom");
+exports.OrdersRepo = void 0;
 const drizzle_orm_1 = require("drizzle-orm");
+const expressions_1 = require("drizzle-orm/expressions");
 const database_1 = __importDefault(require("../db/database"));
 const schema_1 = require("../db/schema");
+const info_1 = __importDefault(require("../entities/info"));
 const utils_1 = require("../utils/utils");
 const { database } = database_1.default;
-class Orders {
+class OrdersRepo {
+    static async ordersCount() {
+        const ts = (0, utils_1.getTS)();
+        const startExec = Date.now();
+        const count = await database
+            .select({
+            count: (0, drizzle_orm_1.sql) `count(${schema_1.ordersTable.orderID})`,
+        })
+            .from(schema_1.ordersTable);
+        if (!count.length)
+            return null;
+        return {
+            data: +count[0].count,
+            info: new info_1.default(database
+                .select({
+                count: (0, drizzle_orm_1.sql) `count(${schema_1.ordersTable.orderID})`,
+            })
+                .from(schema_1.ordersTable)
+                .toSQL().sql, ts, (0, utils_1.calcExecutionTime)(startExec, Date.now()), utils_1.workerId),
+        };
+    }
 }
-exports.Orders = Orders;
-_a = Orders;
-Orders.getAllOrders = async () => {
-    try {
-        const queryTS = (0, utils_1.getTS)();
-        const startQueryTime = Date.now();
-        const orders = await database.select(schema_1.ordersTable);
-        const endQueryTime = Date.now();
-        const queryExecutionTime = (0, utils_1.executeQueryTime)(startQueryTime, endQueryTime);
-        const response = {
-            data: orders,
-            queryInfo: {
-                queryString: database.select(schema_1.ordersTable).toSQL().sql,
-                queryTS,
-                queryExecutionTime,
-            },
-        };
-        return response;
-    }
-    catch (err) {
-        if (err instanceof Error) {
-            console.log("GetAllOrders error in database,error message: " + err.message);
-        }
-    }
+exports.OrdersRepo = OrdersRepo;
+_a = OrdersRepo;
+OrdersRepo.getAllOrders = async (page) => {
+    const limit = +process.env.LIMIT;
+    const offset = limit * (+page - 1);
+    const ts = (0, utils_1.getTS)();
+    const startExec = Date.now();
+    const orders = await database
+        .select({
+        orderID: schema_1.ordersTable.orderID,
+        totalProductPrice: (0, drizzle_orm_1.sql) `sum(${schema_1.orderDetailsTable.unitPrice} * ${schema_1.orderDetailsTable.quantity})`,
+        totalProductsItems: (0, drizzle_orm_1.sql) `sum(${schema_1.orderDetailsTable.quantity})`,
+        totalProductsQuantity: (0, drizzle_orm_1.sql) `count(${schema_1.orderDetailsTable.orderID})`,
+        shippedDate: schema_1.ordersTable.shippedDate,
+        shipName: schema_1.ordersTable.shipName,
+        shipCity: schema_1.ordersTable.shipCity,
+        shipCountry: schema_1.ordersTable.shipCountry,
+    })
+        .from(schema_1.ordersTable)
+        .leftJoin(schema_1.orderDetailsTable, (0, expressions_1.eq)(schema_1.ordersTable.orderID, schema_1.orderDetailsTable.orderID))
+        .limit(limit)
+        .offset(offset)
+        .groupBy(schema_1.ordersTable.orderID);
+    if (!orders.length)
+        return null;
+    return {
+        data: orders,
+        info: new info_1.default(database
+            .select({
+            orderID: schema_1.ordersTable.orderID,
+            totalProductPrice: (0, drizzle_orm_1.sql) `sum(${schema_1.orderDetailsTable.unitPrice} * ${schema_1.orderDetailsTable.quantity})`,
+            totalProductsItems: (0, drizzle_orm_1.sql) `sum(${schema_1.orderDetailsTable.quantity})`,
+            totalProductsQuantity: (0, drizzle_orm_1.sql) `count(${schema_1.orderDetailsTable.orderID})`,
+            shippedDate: schema_1.ordersTable.shippedDate,
+            shipName: schema_1.ordersTable.shipName,
+            shipCity: schema_1.ordersTable.shipCity,
+            shipCountry: schema_1.ordersTable.shipCountry,
+        })
+            .from(schema_1.ordersTable)
+            .leftJoin(schema_1.orderDetailsTable, (0, expressions_1.eq)(schema_1.ordersTable.orderID, schema_1.orderDetailsTable.orderID))
+            .limit(limit)
+            .offset(offset)
+            .groupBy(schema_1.ordersTable.orderID)
+            .toSQL().sql, ts, (0, utils_1.calcExecutionTime)(startExec, Date.now()), utils_1.workerId),
+    };
 };
-Orders.getIndexedOrders = async (orderId) => {
-    try {
-        const queryOrderInfoString = `
-          SELECT
-          SUM(OrdDet."UnitPrice" * OrdDet."Discount" * OrdDet."Quantity") AS Total_Products_Discount, 
-          SUM(OrdDet."UnitPrice" * OrdDet."Quantity") AS Total_Products_Price, 
-          SUM(OrdDet."Quantity") AS Total_Products_Items, 
-          COUNT(OrdDet."OrderID") AS Total_Products, 
-          Ord."CustomerID", 
-          Ord."OrderID", 
-          Ord."ShippedDate", 
-          Ord."ShipName", 
-          Ord."ShipCity", 
-          Shp."CompanyName", 
-          Ord."ShipCountry", 
-          Ord."Freight",
-          Ord."OrderDate", 
-          Ord."RequiredDate",
-          Ord."ShipRegion", 
-          Ord."ShipPostalCode"
-          FROM order_details OrdDet, Orders Ord, Shippers Shp
-          WHERE OrdDet."OrderID" = Ord."OrderID" AND Ord."ShipVia" = Shp."ShipperID" AND Ord."OrderID" = ${orderId}
-          group by Ord."OrderID", Shp."ShipperID"
-        `;
-        const queryProductsInOrderString = `
-          SELECT
-          OrdDet."ProductID",
-          Prd."ProductName",
-          OrdDet."Quantity",
-          OrdDet."UnitPrice",
-          (OrdDet."UnitPrice" * OrdDet."Quantity") AS Total_Products_Price,
-          OrdDet."Discount"
-          FROM order_details OrdDet, Products Prd
-          WHERE OrdDet."ProductID" = Prd."ProductID" AND OrdDet."OrderID" = ${orderId}
-        `;
-        const queryTS = (0, utils_1.getTS)();
-        const startQueryOrderInfoTime = Date.now();
-        const order = await database.execute((0, drizzle_orm_1.sql) `
-          SELECT
-          SUM(OrdDet."UnitPrice" * OrdDet."Discount" * OrdDet."Quantity") AS Total_Products_Discount, 
-          SUM(OrdDet."UnitPrice" * OrdDet."Quantity") AS Total_Products_Price, 
-          SUM(OrdDet."Quantity") AS Total_Products_Items, 
-          COUNT(OrdDet."OrderID") AS Total_Products, 
-          Ord."CustomerID", 
-          Ord."OrderID", 
-          Ord."ShippedDate", 
-          Ord."ShipName", 
-          Ord."ShipCity", 
-          Shp."CompanyName", 
-          Ord."ShipCountry", 
-          Ord."Freight",
-          Ord."OrderDate", 
-          Ord."RequiredDate",
-          Ord."ShipRegion", 
-          Ord."ShipPostalCode"
-          FROM order_details OrdDet, Orders Ord, Shippers Shp
-          WHERE OrdDet."OrderID" = Ord."OrderID" AND Ord."ShipVia" = Shp."ShipperID" AND Ord."OrderID" = ${orderId}
-          group by Ord."OrderID", Shp."ShipperID"
-          `);
-        const endQueryOrderInfoTime = Date.now();
-        const queryOrderInfoTimeExecutionTime = (0, utils_1.executeQueryTime)(startQueryOrderInfoTime, endQueryOrderInfoTime);
-        const startQueryProductsInOrderTime = Date.now();
-        const products = await database.execute((0, drizzle_orm_1.sql) `SELECT
-          OrdDet."ProductID",
-          Prd."ProductName",
-          OrdDet."Quantity",
-          OrdDet."UnitPrice",
-          (OrdDet."UnitPrice" * OrdDet."Quantity") AS Total_Products_Price,
-          OrdDet."Discount"
-          FROM order_details OrdDet, Products Prd
-          WHERE OrdDet."ProductID" = Prd."ProductID" AND OrdDet."OrderID" = ${orderId}`);
-        const endProductsInOrderTime = Date.now();
-        const queryProductsInOrderTimeExecutionTime = (0, utils_1.executeQueryTime)(startQueryProductsInOrderTime, endProductsInOrderTime);
-        if (!order.rows.length)
-            return (0, boom_1.badRequest)("No such order").output.payload.message;
-        const response = {
-            data: {
-                orderInfo: order.rows,
-                productsInfo: products.rows,
-            },
-            queryInfo: {
-                orderInfo: {
-                    queryString: queryOrderInfoString,
-                    queryTS,
-                    queryExecutionTime: queryOrderInfoTimeExecutionTime,
-                },
-                productsInOrder: {
-                    queryString: queryProductsInOrderString,
-                    queryTS,
-                    queryExecutionTime: queryProductsInOrderTimeExecutionTime,
-                },
-            },
-        };
-        return response;
-    }
-    catch (err) {
-        if (err instanceof Error) {
-            console.log("GetIndexedOrders error in database,error message: " + err.message);
-        }
-    }
+OrdersRepo.getIndexedOrders = async (orderId) => {
+    const ts = (0, utils_1.getTS)();
+    const startExec = Date.now();
+    const order = await database
+        .select({
+        orderID: schema_1.ordersTable.orderID,
+        totalProductDiscount: (0, drizzle_orm_1.sql) `sum(${schema_1.orderDetailsTable.unitPrice} * ${schema_1.orderDetailsTable.discount} * ${schema_1.orderDetailsTable.quantity})`,
+        totalProductPrice: (0, drizzle_orm_1.sql) `sum(${schema_1.orderDetailsTable.unitPrice} * ${schema_1.orderDetailsTable.quantity})`,
+        totalProductsItems: (0, drizzle_orm_1.sql) `sum(${schema_1.orderDetailsTable.quantity})`,
+        totalProductsQuantity: (0, drizzle_orm_1.sql) `count(${schema_1.orderDetailsTable.orderID})`,
+        customerID: schema_1.ordersTable.customerID,
+        shippedDate: schema_1.ordersTable.shippedDate,
+        shipName: schema_1.ordersTable.shipName,
+        shipCity: schema_1.ordersTable.shipCity,
+        shipCountry: schema_1.ordersTable.shipCountry,
+        companyName: schema_1.shippersTable.companyName,
+        freight: schema_1.ordersTable.freight,
+        orderDate: schema_1.ordersTable.orderDate,
+        requiredDate: schema_1.ordersTable.requiredDate,
+        shipRegion: schema_1.ordersTable.shipRegion,
+        shipPostalCode: schema_1.ordersTable.shipPostalCode,
+    })
+        .from(schema_1.ordersTable)
+        .leftJoin(schema_1.orderDetailsTable, (0, expressions_1.eq)(schema_1.ordersTable.orderID, schema_1.orderDetailsTable.orderID))
+        .leftJoin(schema_1.shippersTable, (0, expressions_1.eq)(schema_1.shippersTable.shipperID, schema_1.ordersTable.shipVia))
+        .where((0, expressions_1.eq)(schema_1.orderDetailsTable.orderID, orderId))
+        .groupBy(schema_1.ordersTable.orderID, schema_1.shippersTable.shipperID);
+    if (!order.length)
+        return null;
+    return {
+        data: order[0],
+        info: new info_1.default(database
+            .select({
+            orderID: schema_1.ordersTable.orderID,
+            totalProductDiscount: (0, drizzle_orm_1.sql) `sum(${schema_1.orderDetailsTable.unitPrice} * ${schema_1.orderDetailsTable.discount} * ${schema_1.orderDetailsTable.quantity})`,
+            totalProductPrice: (0, drizzle_orm_1.sql) `sum(${schema_1.orderDetailsTable.unitPrice} * ${schema_1.orderDetailsTable.quantity})`,
+            totalProductsItems: (0, drizzle_orm_1.sql) `sum(${schema_1.orderDetailsTable.quantity})`,
+            totalProductsQuantity: (0, drizzle_orm_1.sql) `count(${schema_1.orderDetailsTable.orderID})`,
+            customerID: schema_1.ordersTable.customerID,
+            shippedDate: schema_1.ordersTable.shippedDate,
+            shipName: schema_1.ordersTable.shipName,
+            shipCity: schema_1.ordersTable.shipCity,
+            shipCountry: schema_1.ordersTable.shipCountry,
+            companyName: schema_1.shippersTable.companyName,
+            freight: schema_1.ordersTable.freight,
+            orderDate: schema_1.ordersTable.orderDate,
+            requiredDate: schema_1.ordersTable.requiredDate,
+            shipRegion: schema_1.ordersTable.shipRegion,
+            shipPostalCode: schema_1.ordersTable.shipPostalCode,
+        })
+            .from(schema_1.ordersTable)
+            .leftJoin(schema_1.orderDetailsTable, (0, expressions_1.eq)(schema_1.ordersTable.orderID, schema_1.orderDetailsTable.orderID))
+            .leftJoin(schema_1.shippersTable, (0, expressions_1.eq)(schema_1.shippersTable.shipperID, schema_1.ordersTable.shipVia))
+            .where((0, expressions_1.eq)(schema_1.orderDetailsTable.orderID, orderId))
+            .groupBy(schema_1.ordersTable.orderID, schema_1.shippersTable.shipperID)
+            .toSQL().sql, ts, (0, utils_1.calcExecutionTime)(startExec, Date.now()), utils_1.workerId),
+    };
 };

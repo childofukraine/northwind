@@ -2,7 +2,6 @@ import express from "express";
 import { Controller } from "../controller/controller";
 
 const router = express.Router();
-router.get("/dash", Controller.dash);
 router.get("/suppliers", Controller.suppliers);
 router.get("/suppliers/:supplierId", Controller.suppliersIndexed);
 router.get("/products", Controller.products);

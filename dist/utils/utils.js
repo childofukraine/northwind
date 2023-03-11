@@ -1,11 +1,11 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.executeQueryTime = exports.getTS = void 0;
+exports.calcExecutionTime = exports.getTS = exports.workerId = void 0;
+const uuid_1 = require("uuid");
+exports.workerId = `primary-${(0, uuid_1.v4)()}.render.db`;
 const getTS = () => {
-    return new Date().toISOString().slice(0, 19).replace("T", " ");
+    return new Date().toISOString();
 };
 exports.getTS = getTS;
-const executeQueryTime = (startTime, endTime) => {
-    return `${endTime - startTime}ms`;
-};
-exports.executeQueryTime = executeQueryTime;
+const calcExecutionTime = (start, end) => end - start;
+exports.calcExecutionTime = calcExecutionTime;
