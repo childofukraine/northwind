@@ -1,19 +1,15 @@
 import express from "express";
 import cors from "cors";
 import dotenv from "dotenv";
-// import router from "./router/router";
+import router from "./router/router";
 import { errorHandler } from "./utils/error_handler";
-import suppliersRoutes from "./router/suppliers"
 
 dotenv.config();
 const app = express();
 const PORT = process.env.PORT || 5000;
 
-app.use(express.urlencoded({ extended: true }));
-app.use(express.json());
-app.use(cors())
-app.use("/", suppliersRoutes);
-
+app.use(cors());
+app.use("/", router);
 
 app.use(errorHandler);
 
