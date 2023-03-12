@@ -26,7 +26,7 @@ router.get("/customers", Controller.customers);
 router.get("/customers/:customerId", Controller.customersIndexed);
 router.get("/search-products/:keyword", Controller.searchProducts);
 router.get("/search-customers/:keyword", Controller.searchCustomers);
-// app.use("/", router);
+app.use("/", router);
 
 
 app.use(errorHandler);
